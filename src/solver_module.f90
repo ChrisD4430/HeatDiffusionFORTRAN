@@ -6,6 +6,7 @@ module solver_module
 
 contains
 
+  ! Creates the initial temperature profile along the rod
   subroutine initialize_temperature(g, temp, temp_left, temp_right)
     type(line_grid), intent(in)  :: g
     real(kind=8),    intent(out) :: temp(:)
@@ -14,6 +15,7 @@ contains
     integer :: i
     real(kind=8) :: center, width
 
+    ! Create a warm bump in the center of the rod
     center = 0.5d0 * (g%x(1) + g%x(g%n_points))
     width  = 0.1d0 * (g%x(g%n_points) - g%x(1))
 
@@ -21,10 +23,12 @@ contains
        temp(i) = exp(-((g%x(i) - center)**2) / (2.0d0 * width**2))
     end do
 
+    ! Clamp the ends to fixed temperatures
     temp(1)            = temp_left
     temp(g%n_points)   = temp_right
   end subroutine initialize_temperature
 
+  ! Performs one diffusion update step
   subroutine step_diffusion(g, temp, diffusivity, dt)
     type(line_grid), intent(in)    :: g
     real(kind=8),    intent(inout) :: temp(:)
@@ -38,12 +42,15 @@ contains
     allocate(temp_new(n))
     temp_new = temp
 
+    ! Controls how strongly temperatures spread each step
     factor = diffusivity * dt / (g%dx**2)
 
+    ! Update interior points based on neighbors
     do i = 2, n - 1
        temp_new(i) = temp(i) + factor * (temp(i+1) - 2.0d0*temp(i) + temp(i-1))
     end do
 
+    ! Keep the ends fixed
     temp_new(1) = temp(1)
     temp_new(n) = temp(n)
 
